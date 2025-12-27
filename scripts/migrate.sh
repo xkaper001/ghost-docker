@@ -162,7 +162,6 @@ WHAT WILL HAPPEN:
   ✓ Copy content directory to Docker mount
   ✓ Export and import your database to a Docker based MySQL instance
   ✓ Start Ghost in Docker container
-  ✓ Optionally configure Caddy Webserver for HTTPS
 
 WHAT WONT HAPPEN:
   ✓ No data will be deleted
@@ -410,7 +409,7 @@ main() {
     fi
 
     # Check for .env file
-    if [[ ! -f "${PWD}/.env" ]]; then
+    if [[ ! -f "${PWD}/stack.env" ]]; then
         echo "ERROR: Please create a .env file for the Docker installation first"
         exit 1
     fi
@@ -571,8 +570,8 @@ main() {
     node "${PWD}/scripts/config-to-env.js" "${current_location}/config.production.json"
     echo ""
 
-    echo -e "\n# Configuration imported from existing Ghost install at ${current_location}" >> "${PWD}/.env"
-    node "${PWD}/scripts/config-to-env.js" "${current_location}/config.production.json" >> "${PWD}/.env"
+    echo -e "\n# Configuration imported from existing Ghost install at ${current_location}" >> "${PWD}/stack.env"
+    node "${PWD}/scripts/config-to-env.js" "${current_location}/config.production.json" >> "${PWD}/stack.env"
     echo "✓ Configuration imported"
 
     # Start Ghost
@@ -581,29 +580,11 @@ main() {
     docker compose up ghost -d
     echo "✓ Ghost is running in Docker"
 
-    # Caddy setup
+    local ghost_port
+    ghost_port=$(grep 'GHOST_PORT' "${PWD}/stack.env" | cut -d '=' -f 2-)
     echo ""
-    read -rp 'Start Caddy Webserver for automatic HTTPS? This will stop Nginx. (y/n): ' confirm
-    if [[ "${confirm,,}" == "y" ]]; then
-        echo "Stopping Nginx..."
-        systemctl stop nginx -q || true
-        systemctl disable nginx -q || true
-
-        echo "Starting Caddy..."
-        docker compose up caddy -d
-
-        local domain
-        domain=$(grep 'DOMAIN' "${PWD}/.env" | cut -d '=' -f 2-)
-        echo ""
-        echo "✓ Caddy Webserver is running!"
-        echo "✓ Your site is available at: https://${domain}"
-    else
-        local ghost_port
-        ghost_port=$(grep 'GHOST_PORT' "${PWD}/.env" | cut -d '=' -f 2-)
-        echo ""
-        echo "✓ Ghost is now running"
-        echo "  To finish migration, configure your webserver to forward traffic to 127.0.0.1:${ghost_port}"
-    fi
+    echo "✓ Ghost is now running"
+    echo "  To finish migration, configure your webserver to forward traffic to 127.0.0.1:${ghost_port}"
 
     # Success! Remove recovery script
     rm -f "$RECOVERY_SCRIPT"
@@ -619,7 +600,7 @@ main() {
     echo "  • Original files: $current_location"
     echo "  • Original database: $mysql_database on $mysql_host"
     echo "  • New content location: ${PWD}/data/ghost/"
-    echo "  • Configuration: ${PWD}/.env"
+    echo "  • Configuration: ${PWD}/stack.env"
     echo ""
     echo "QUICK START COMMANDS:"
     echo "  View logs:        docker compose logs -f ghost"
@@ -628,7 +609,7 @@ main() {
     echo "  Start Ghost:      docker compose up -d"
     echo ""
     echo "TROUBLESHOOTING:"
-    echo "  • If site is unreachable, check: docker compose logs caddy"
+    echo ""
     echo "  • For 502 errors, Ghost may still be starting (check logs)"
     echo "  • Database issues: docker compose logs db"
     echo ""
