@@ -46,6 +46,8 @@ services:
     restart: always
     expose:
       - "3306"
+    env_file:
+      - stack.env
     environment:
       MYSQL_ROOT_PASSWORD: ${DATABASE_ROOT_PASSWORD:?DATABASE_ROOT_PASSWORD environment variable is required}
       MYSQL_USER: ${DATABASE_USER:-ghost}
@@ -71,6 +73,8 @@ services:
       - "3000"
     volumes:
       - traffic_analytics_data:/data
+    env_file:
+      - stack.env
     environment:
       NODE_ENV: production
       PROXY_TARGET: ${TINYBIRD_API_URL:-https://api.tinybird.co}/v0/events
@@ -89,6 +93,8 @@ services:
       - "8080"
     volumes:
       - ${UPLOAD_LOCATION:-./data/ghost}:/opt/activitypub/content
+    env_file:
+      - stack.env
     environment:
       # See https://github.com/TryGhost/ActivityPub/blob/main/docs/env-vars.md
       NODE_ENV: production
@@ -125,7 +131,6 @@ services:
     restart: no
 
   tinybird-sync:
-    # Do not alter this without updating the Ghost container as well
     image: ghost:${GHOST_VERSION:-6-alpine}
     command: >
       sh -c "
@@ -169,6 +174,8 @@ services:
 
   activitypub-migrate:
     image: ghcr.io/tryghost/activitypub-migrations:1.1.0@sha256:b3ab20f55d66eb79090130ff91b57fe93f8a4254b446c2c7fa4507535f503662
+    env_file:
+      - stack.env
     environment:
       MYSQL_DB: mysql://${DATABASE_USER:-ghost}:${DATABASE_PASSWORD:?DATABASE_PASSWORD environment variable is required}@tcp(db:3306)/activitypub
     networks:
