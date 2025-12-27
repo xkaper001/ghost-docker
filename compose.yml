@@ -26,7 +26,7 @@ services:
     restart: always
     # This is required to import current config when migrating
     env_file:
-      - .env
+      - stack.env
     environment:
       NODE_ENV: production
       url: https://${DOMAIN:?DOMAIN environment variable is required}
